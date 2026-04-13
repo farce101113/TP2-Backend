@@ -118,6 +118,7 @@ TP2-Backend/
 ├── init_db.sql         # Definición de tablas
 ├── seed.sql            # Datos iniciales
 ├── partidos.py         # Rutas de partidos
+├── usuarios.py         # Rutas de usuarios
 ├── setup.sh            # Script de automatización
 └── README.md
 ```
