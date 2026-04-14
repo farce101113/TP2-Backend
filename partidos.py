@@ -152,3 +152,119 @@ def put_resultado(id):
     conn.close()
 
     return '', 204
+
+# POST partidos/id/prediccion
+
+@partidos_bp.route('/partidos/<int:id_partido>/prediccion', methods=['POST'])
+def prediccion(id_partido):
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'Error': 'Body Vacio'}), 400
+
+    id_usuario = data.get('id_usuario')
+    goles_loc = data.get('goles_loc')
+    goles_vis = data.get('goles_vis')
+
+    if id_usuario is None or goles_loc is None or goles_vis is None:
+        return jsonify({'Error': 'Faltan datos obligatorios'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""SELECT goles_loc, goles_vis FROM partidos WHERE id_partido = %s""", (id_partido,))
+
+    partido = cursor.fetchone()
+
+    if not partido:
+        return jsonify({"Error": "Partido no encontrado"}), 404
+
+    if partido[0] is not None and partido[1] is not None:
+        return jsonify({"Error": "El partido ya fue jugado"}), 400
+
+    cursor.execute("SELECT id_usuario FROM usuarios WHERE id_usuario = %s", (id_usuario,))
+    usuario = cursor.fetchone()
+
+    if not usuario:
+        return jsonify({
+            "Error": "Usuario no encontrado"
+        }), 404
+
+    cursor.execute("""
+                   SELECT id_prediccion FROM predicciones 
+                   WHERE id_usuario = %s AND id_partido = %s
+    """, (id_usuario, id_partido))
+
+    prediccion = cursor.fetchone()
+
+    if prediccion:
+        return jsonify({
+            "Error": "El usuario ya hizo una prediccion para este partido"
+        }), 400
+
+    cursor.execute("""
+                   INSERT INTO predicciones (id_usuario, id_partido, goles_loc, goles_vis) 
+                   VALUES (%s, %s, %s, %s)
+    """, (id_usuario, id_partido, goles_loc, goles_vis))
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "MENSAJE": "Prediccion registrada correctamente",
+        "id_usuario": id_usuario,
+        "id_partido": id_partido,
+        "goles_loc": goles_loc,
+        "goles_vis": goles_vis
+    }), 201
+
+
+# GET /ranking
+
+@partidos_bp.route('/ranking', methods=['GET'])
+def ranking():
+    data = request.get_json()
+    if not data:
+        return jsonify({"Error": "Body Vacio"}), 400
+
+    limit = request.args.get('limit', default=10, type=int)
+    offset = request.args.get('offset', default=0, type=int)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM usuarios")
+    total = cursor.fetchone()[0]
+
+    query = """
+                SELECT id_usuario, nombre, puntos
+                FROM usuarios 
+                ORDER BY puntos DESC
+                LIMIT %s OFFSET %s
+        """
+
+    cursor.execute(query, (limit, offset))
+    resultados = cursor.fetchall()
+
+    ranking = []
+    for i, fila in enumerate(resultados):
+        posicion = offset + i + 1
+
+        ranking.append({
+            "posicion": posicion,
+            "id_usuario": fila[0],
+            "nombre": fila[1],
+            "puntos": fila[2]
+        })
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "data": ranking,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    })
