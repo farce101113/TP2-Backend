@@ -98,7 +98,7 @@ def patch_partido(id):
     conn.close()
     return '', 204
 
-@partidos_bp.route('/<int:id>/resultado', methods=['PUT'])
+@partidos_bp.route('/<int:id>/resultado', methods=['PUT', 'OPTIONS'])
 def put_resultado(id):
     data = request.get_json()
 
