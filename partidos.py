@@ -97,3 +97,58 @@ def patch_partido(id):
     cursor.close()
     conn.close()
     return '', 204
+
+@partidos_bp.route('/<int:id>/resultado', methods=['PUT'])
+def put_resultado(id):
+    data = request.get_json()
+
+    # Validación de campos obligatorios (según Swagger)
+    if not data or 'local' not in data or 'visitante' not in data:
+        return jsonify({
+            "errors": [{
+                "code": "CAMPO_REQUERIDO",
+                "message": "Los campos 'local' y 'visitante' son obligatorios",
+                "level": "error",
+                "description": "Faltan uno o ambos campos en el body"
+            }]
+        }), 400
+
+    if not isinstance(data['local'], int) or not isinstance(data['visitante'], int) or data['local'] < 0 or data['visitante'] < 0:
+        return jsonify({
+            "errors": [{
+                "code": "VALOR_INVALIDO",
+                "message": "Los goles deben ser números enteros >= 0",
+                "level": "error",
+                "description": "local y/o visitante contienen valores inválidos"
+            }]
+        }), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Verificar que el partido existe
+    cursor.execute('SELECT id_partido FROM partidos WHERE id_partido = %s', (id,))
+    if not cursor.fetchone():
+        cursor.close()
+        conn.close()
+        return jsonify({
+            "errors": [{
+                "code": "NOT_FOUND",
+                "message": "Partido no encontrado",
+                "level": "error",
+                "description": f"No existe un partido con id {id}"
+            }]
+        }), 404
+
+    # Actualizar resultado (cargar o actualizar)
+    cursor.execute('''
+        UPDATE partidos
+        SET goles_loc = %s, goles_vis = %s
+        WHERE id_partido = %s
+    ''', (data['local'], data['visitante'], id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return '', 204
