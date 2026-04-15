@@ -1,17 +1,157 @@
 from flask import Flask, request, jsonify, Blueprint
 from db import get_db_connection
+from datetime import datetime
 
 partidos_bp = Blueprint('partidos', __name__)
 
 @partidos_bp.route('/', methods=['GET'])
 def get_partidos():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM partidos')
-    partidos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(partidos)
+
+    try:
+        equipo = request.args.get('equipo')
+        fecha = request.args.get('fecha')
+        fase = request.args.get('fase')
+        limit = request.args.get('_limit', default = 10, type=int)
+        offset = request.args.get('_offset', default=0, type=int)
+
+        if limit < 0 or offset < 0:
+            return jsonify({
+                        'code' : 'BAD REQUEST',
+                        'message' : 'Los parametros _limit y _offset deben ser numeros enteros no negativos',
+                        'level' : 'error',
+                        'description' : 'El valor de _limit y _offset debe ser un numero entero mayor o igual a 0'
+                    }), 400
+        
+        if fecha:
+            try:
+                datetime.strptime(fecha, '%Y-%m-%d')
+
+            except ValueError:
+                return jsonify({
+                    'code' : 'BAD REQUEST',
+                    'message' : 'El formato de fecha es invalido',
+                    'level' : 'error',
+                    'description' : 'El formato de fecha debe ser YYYY-MM-DD'
+                }), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = 'SELECT * FROM partidos WHERE 1=1'
+        params = []
+
+        if equipo : 
+            query += ' AND (equipo_loc = %s OR equipo_vis = %s)'
+            params.extend([equipo,equipo])
+
+        if fecha:
+            query += ' AND fecha LIKE %s'
+            params.append(f'{fecha}%')
+
+        if fase:
+            query += ' AND id_fase = %s'
+            params.append(fase)
+
+        # Contar con los mismos filtros
+        count_query = query.replace('SELECT *', 'SELECT COUNT(*) AS total')
+        cursor.execute(count_query, tuple(params))
+        total = cursor.fetchone()['total']
+
+        query += ' LIMIT %s OFFSET %s'
+        params.extend([limit,offset])
+
+        cursor.execute(query, tuple(params))
+        partidos = cursor.fetchall()
+
+        for partido in partidos:
+            if partido.get('goles_loc') is None:
+                partido.pop('goles_loc', None)
+            if partido.get('goles_vis') is None:
+                partido.pop('goles_vis', None)
+        
+        base_url = request.base_url
+        extra_params = ''
+        if equipo:
+            extra_params += f"&equipo={equipo}"
+        if fecha:
+            extra_params += f"&fecha={fecha}"
+        if fase:
+            extra_params += f"&fase={fase}"
+
+        def build_url(new_offset):
+            return f"{base_url}?_limit={limit}&_offset={new_offset}{extra_params}"
+
+        first = build_url(0)
+        prev = build_url(max(offset - limit, 0)) if offset > 0 else None
+        next = build_url(offset + limit) if offset + limit < total else None
+        last_offset = (total - 1) // limit
+        last = build_url(last_offset)
+
+        cursor.close()
+        conn.close()
+
+        if len(partidos) == 0:
+            return 'No hay partidos que cumplan con los criterios de búsqueda', 204
+
+        return jsonify(
+            {
+            'partidos': partidos,
+            'links': {
+                'first': first,
+                'prev': prev,
+                'next': next,
+                'last': last
+            }
+            
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'code' : 'INTERNAL SERVER_ERROR',
+            'message' : 'Ocurrio un error al procesar la solicitud de partidosl',
+            'level' : 'error',
+            'description' : str(e)
+        }), 500
+
+@partidos_bp.route('/<int:id>', methods=['GET'])
+def get_partidos_id(id):
+    try:
+        if id <= 0:
+            return jsonify({
+                        'code' : 'BAD REQUEST',
+                        'message' : 'El parametro id debe ser un numero entero no negativo',
+                        'level' : 'error',
+                        'description' : 'El valor de id debe ser un numero entero mayor a 0'
+                    }), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute('SELECT * FROM partidos WHERE id_partido = %s',(id,))
+        partidos = cursor.fetchone()
+
+        if partidos is None:
+            return jsonify({
+                'code' : 'NOT FOUND',
+                'message' : f'No se encontro el partido con id {id}',
+                'level' : 'error',
+                'description' : f'No existe un partido con el id {id} en la base de datos'
+            }), 404
+
+        cursor.close()
+        conn.close()
+        
+        return jsonify(partidos), 200
+    
+    except Exception as e:
+        return jsonify({
+    
+            'code' : 'INTERNAL SERVER_ERROR',
+            'message' : 'Ocurrio un error al procesar la solicitud de partidosl',
+            'level' : 'error',
+            'description' : str(e)
+                
+        }), 500
 
 @partidos_bp.route('/<int:id>', methods=['PUT'])
 def put_partido(id):
