@@ -238,6 +238,30 @@ def patch_partido(id):
     conn.close()
     return '', 204
 
+# DELETE partidos
+@partidos_bp.route('/partidos/<int:id>', methods=['DELETE'])
+def eliminar_partido(id):
+    try:
+        PartidoService.eliminar(id)
+        return '', 204
+    except PartidoNoEncontradoError:
+        return jsonify({'error': 'Partido no encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def eliminar(id):
+        partido = PartidoRepository.obtener_por_id(id)
+        if not partido:
+            raise PartidoNoEncontradoError()
+        PartidoRepository.eliminar(partido)
+
+ def obtener_por_id(id):
+        return Partido.query.get(id)
+
+def eliminar(partido):
+        db.session.delete(partido)
+        db.session.commit()
+
 @partidos_bp.route('/<int:id>/resultado', methods=['PUT', 'OPTIONS'])
 def put_resultado(id):
     data = request.get_json()
