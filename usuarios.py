@@ -63,3 +63,24 @@ def crear_usuario():
     finally:
         cursor.close()
         conn.close()
+@usuarios_bp.route('/<int:id>', methods=['DELETE'])
+def delete_usuario(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id FROM usuarios WHERE id = %s', (id,))
+    usuario = cursor.fetchone()
+
+    if usuario:
+        cursor.execute('DELETE FROM usuarios WHERE id = %s', (id,))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"mensaje": "Usuario eliminado"}), 200
+    else:
+        cursor.close()
+        conn.close()
+
+        return jsonify({"error": "Usuario no encontrado"}), 404
