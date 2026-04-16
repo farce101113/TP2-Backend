@@ -4,46 +4,80 @@ from db import get_db_connection
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
-@usuarios_bp.route('/<int:id>', methods=['GET']
-def listar_usuarios():
-    limit = request.args.get('limit', 10, type=int)
-    offset = request.args.get('offset', 0, type=int)
-    
-    if limit <= 0 or offset < 0:
-        return jsonify({'error': 'limit debe ser > 0 y offset >= 0'}), 400
-
-    resultado = UsuarioService.listar_paginado(limit, offset)
-    return jsonify(resultado), 200
-
- def listar_paginado(limit, offset):
-        usuarios = UsuarioRepository.obtener_paginado(limit, offset)
-        total = UsuarioRepository.contar()
+@usuarios_bp.route('/', methods=['GET'])
+def get_usuarios():
+    try:
+        limit = request.args.get('limit', default=10, type=int)
+        offset = request.args.get('offset', default=0, type=int)
         
-        data = [{
-            'id': u.id,
-            'nombre': u.nombre,
-            'email': u.email
-        } for u in usuarios]
+        # Validaciones
+        if limit <= 0:
+            return jsonify({
+                'code': 'BAD_REQUEST',
+                'message': 'El parámetro limit debe ser mayor a 0',
+                'level': 'error',
+                'description': f'limit={limit} no es válido'
+            }), 400
         
-        base_url = '/usuarios'
-        return {
-            'data': data,
+        if offset < 0:
+            return jsonify({
+                'code': 'BAD_REQUEST',
+                'message': 'El parámetro offset debe ser mayor o igual a 0',
+                'level': 'error',
+                'description': f'offset={offset} no es válido'
+            }), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT COUNT(*) AS total FROM usuarios')
+        total = cursor.fetchone()['total']
+        
+        cursor.execute('''
+            SELECT id_usuario, nombre, email 
+            FROM usuarios 
+            LIMIT %s OFFSET %s
+        ''', (limit, offset))
+        usuarios = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        base_url = request.base_url
+        
+        def build_url(new_offset):
+            return f"{base_url}?limit={limit}&offset={new_offset}"
+        
+        first = build_url(0)
+        prev = build_url(max(offset - limit, 0)) if offset > 0 else None
+        next = build_url(offset + limit) if offset + limit < total else None
+        last_offset = ((total - 1) // limit) if total > 0 else 0
+        last = build_url(last_offset)
+        
+        response = {
+            'data': usuarios,
             'pagination': {
                 'limit': limit,
                 'offset': offset,
                 'total': total,
-                'first': f'{base_url}?limit={limit}&offset=0',
-                'prev': f'{base_url}?limit={limit}&offset={max(0, offset - limit)}' if offset > 0 else None,
-                'next': f'{base_url}?limit={limit}&offset={offset + limit}' if offset + limit < total else None,
-                'last': f'{base_url}?limit={limit}&offset={(total // limit) * limit}'
+                'links': {
+                    'first': first,
+                    'prev': prev,
+                    'next': next,
+                    'last': last
+                }
             }
         }
-
-def obtener_paginado(limit, offset):
-        return Usuario.query.offset(offset).limit(limit).all()
-
- def contar():
-        return Usuario.query.count()
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        return jsonify({
+            'code': 'INTERNAL_SERVER_ERROR',
+            'message': 'Error al obtener usuarios',
+            'level': 'error',
+            'description': str(e)
+        }), 500
 
 @usuarios_bp.route('/<int:id>', methods=['GET'])
 def get_usuario(id):
