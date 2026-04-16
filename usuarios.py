@@ -84,3 +84,39 @@ def delete_usuario(id):
         conn.close()
 
         return jsonify({"error": "Usuario no encontrado"}), 404
+
+@usuarios_bp.route('/<int:id>', methods=['PUT'])
+def modificar_usuario(id):
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"errors": [{"message": "Body requerido"}]}), 400
+
+    nombre = data.get("nombre")
+    email = data.get("email")
+
+    if not nombre or not email:
+        return jsonify({"errors": [{"message": "nombre y email son obligatorios"}]}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
+            (nombre, email, id)
+        )
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"errors": [{"message": "Usuario no encontrado"}]}), 404
+
+        return jsonify({"id": id, "nombre": nombre, "email": email}), 200
+
+    except mysql.connector.IntegrityError:
+        return jsonify({"errors": [{"message": "email ya está en uso por otro usuario"}]}), 409
+    except Exception:
+        return jsonify({"errors": [{"message": "error interno"}]}), 500
+    finally:
+        cursor.close()
+        conn.close()
