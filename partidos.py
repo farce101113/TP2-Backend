@@ -253,28 +253,39 @@ def patch_partido(id):
     return '', 204
 
 # DELETE partidos
-@partidos_bp.route('/partidos/<int:id>', methods=['DELETE'])
+@partidos_bp.route('/<int:id>', methods=['DELETE'])
 def eliminar_partido(id):
     try:
-        PartidoService.eliminar(id)
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verificamos si existe
+        cursor.execute('SELECT id_partido FROM partidos WHERE id_partido = %s', (id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'code': 'NOT_FOUND',
+                'message': f'No se encontró el partido con id {id}',
+                'level': 'error',
+                'description': f'No existe un partido con el id {id} en la base de datos'
+            }), 404
+        
+        cursor.execute('DELETE FROM partidos WHERE id_partido = %s', (id,))
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
         return '', 204
-    except PartidoNoEncontradoError:
-        return jsonify({'error': 'Partido no encontrado'}), 404
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-def eliminar(id):
-        partido = PartidoRepository.obtener_por_id(id)
-        if not partido:
-            raise PartidoNoEncontradoError()
-        PartidoRepository.eliminar(partido)
-
- def obtener_por_id(id):
-        return Partido.query.get(id)
-
-def eliminar(partido):
-        db.session.delete(partido)
-        db.session.commit()
+        return jsonify({
+            'code': 'INTERNAL_SERVER_ERROR',
+            'message': 'Ocurrió un error al eliminar el partido',
+            'level': 'error',
+            'description': str(e)
+        }), 500
 
 @partidos_bp.route('/<int:id>/resultado', methods=['PUT', 'OPTIONS'])
 def put_resultado(id):
