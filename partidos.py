@@ -4,6 +4,20 @@ from datetime import datetime
 
 partidos_bp = Blueprint('partidos', __name__)
 
+# Funcion para generar respuestas de error consistentes
+def error_response(status_code, code, message, description, details=None):
+    error = {
+        "code": code,
+        "message": message,
+        "level": "error",
+        "description": description
+    }
+
+    if details:
+        error["details"] = details
+
+    return jsonify({"errors": [error]}), status_code
+
 @partidos_bp.route('/', methods=['GET'])
 def get_partidos():
 
@@ -318,7 +332,7 @@ def put_resultado(id):
     return '', 204
 
 # POST /partidos/id/prediccion
-@partidos_bp.route('/partidos/<int:id_partido>/prediccion', methods=['POST'])
+@partidos_bp.route('/<int:id_partido>/prediccion', methods=['POST'])
 def prediccion(id_partido):
     data = request.get_json()
 
@@ -384,49 +398,387 @@ def prediccion(id_partido):
     }), 201
 
 
-# GET /ranking
-@partidos_bp.route('/ranking', methods=['GET'])
-def ranking():
-    data = request.get_json()
-    if not data:
-        return jsonify({"Error": "Body Vacio"}), 400
+@partidos_bp.route('/', methods=['POST'])
+def create_partido():
+    try:
+        data = request.get_json()
 
-    limit = request.args.get('limit', default=10, type=int)
-    offset = request.args.get('offset', default=0, type=int)
+        # Validar campos obligatorios
+        campos = ['equipo_local', 'equipo_visitante', 'fecha', 'fase']
+        faltantes = [c for c in campos if c not in data]
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+        if faltantes:
+            return error_response(
+                400,
+                "BAD_REQUEST",
+                "Faltan campos obligatorios",
+                "Se requieren ciertos campos para crear el partido",
+                {
+                    "invalid_fields": [
+                        {
+                            "field": c,
+                            "reason": "Campo requerido"
+                        } for c in faltantes
+                    ]
+                }
+            )
 
-    cursor.execute("SELECT COUNT(*) FROM usuarios")
-    total = cursor.fetchone()[0]
+        equipo_local = data['equipo_local']
+        equipo_visitante = data['equipo_visitante']
 
-    query = """
-                SELECT id_usuario, nombre, puntos
-                FROM usuarios 
-                ORDER BY puntos DESC
-                LIMIT %s OFFSET %s
-        """
+        # Validar equipos distintos
+        if equipo_local.lower() == equipo_visitante.lower():
+            return error_response(
+                400,
+                "BAD_REQUEST",
+                "Equipos inválidos",
+                "Un equipo no puede jugar contra sí mismo",
+                {
+                    "invalid_fields": [
+                        {
+                            "field": "equipo",
+                            "value": equipo_local,
+                            "reason": "Equipos iguales"
+                        }
+                    ]
+                }
+            )
 
-    cursor.execute(query, (limit, offset))
-    resultados = cursor.fetchall()
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    ranking = []
-    for i, fila in enumerate(resultados):
-        posicion = offset + i + 1
+        # Buscar equipos
+        cursor.execute('''
+            SELECT pais_clasificado, grupo
+            FROM clasificados
+            WHERE LOWER(pais_clasificado) = LOWER(%s)
+        ''', (equipo_local,))
+        local = cursor.fetchone()
 
-        ranking.append({
-            "posicion": posicion,
-            "id_usuario": fila[0],
-            "nombre": fila[1],
-            "puntos": fila[2]
-        })
+        cursor.execute('''
+            SELECT pais_clasificado, grupo
+            FROM clasificados
+            WHERE LOWER(pais_clasificado) = LOWER(%s)
+        ''', (equipo_visitante,))
+        visitante = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+        errores = []
 
-    return jsonify({
-        "data": ranking,
-        "total": total,
-        "limit": limit,
-        "offset": offset
-    })
+        # Validación equipo local
+        if not local:
+            error_local = {
+                "field": "equipo_local",
+                "value": equipo_local,
+                "reason": "No está clasificado",
+                "suggestions": {}
+            }
+
+            if visitante:
+                cursor.execute('''
+                    SELECT pais_clasificado
+                    FROM clasificados
+                    WHERE grupo = %s
+                ''', (visitante[1],))
+                sugerencias = [row[0] for row in cursor.fetchall()]
+                error_local["suggestions"]["same_group"] = sugerencias
+
+            errores.append(error_local)
+
+        # Validación equipo visitante
+        if not visitante:
+            error_visitante = {
+                "field": "equipo_visitante",
+                "value": equipo_visitante,
+                "reason": "No está clasificado",
+                "suggestions": {}
+            }
+
+            if local:
+                cursor.execute('''
+                    SELECT pais_clasificado
+                    FROM clasificados
+                    WHERE grupo = %s
+                ''', (local[1],))
+                sugerencias = [row[0] for row in cursor.fetchall()]
+                error_visitante["suggestions"]["same_group"] = sugerencias
+
+            errores.append(error_visitante)
+
+        if errores:
+            cursor.close()
+            conn.close()
+            return error_response(
+                400,
+                "BAD_REQUEST",
+                "Equipos inválidos",
+                "Uno o más equipos no son válidos",
+                {"invalid_fields": errores}
+            )
+
+        # Validar fase
+        fase_input = data.get('fase')
+
+        # Validar tipo
+        if not isinstance(fase_input, str):
+            cursor.close()
+            conn.close()
+            return error_response(
+                400,
+                "BAD_REQUEST",
+                "Fase inválida",
+                "El campo fase debe ser un string",
+                {
+                    "invalid_fields": [
+                        {
+                            "field": "fase",
+                            "value": fase_input,
+                            "reason": "Tipo inválido"
+                        }
+                    ]
+                }
+            )
+
+        fase_input = fase_input.strip()
+
+        # Buscar fase (case insensitive)
+        cursor.execute(
+            'SELECT id_fase, nombre FROM fases WHERE LOWER(nombre) = LOWER(%s)',
+            (fase_input,)
+        )
+        fase = cursor.fetchone()
+
+        if not fase:
+            # Traer todas las fases válidas
+            cursor.execute('SELECT nombre FROM fases')
+            fases_validas = [row[0] for row in cursor.fetchall()]
+
+            cursor.close()
+            conn.close()
+
+            return error_response(
+                400,
+                "BAD_REQUEST",
+                "Fase inexistente",
+                "La fase especificada no coincide con ninguna válida",
+                {
+                    "invalid_fields": [
+                        {
+                            "field": "fase",
+                            "value": fase_input,
+                            "reason": "No válida",
+                            "valid_values": fases_validas
+                        }
+                    ]
+                }
+            )
+
+        id_fase = fase[0]
+        nombre_fase = fase[1]
+        es_grupos = nombre_fase.lower() == "grupos"
+
+        # Validar mismo grupo
+        if es_grupos and local[1] != visitante[1]:
+            cursor.close()
+            conn.close()
+            return error_response(
+                400,
+                "BAD_REQUEST",
+                "Grupos incompatibles",
+                "Los equipos deben pertenecer al mismo grupo en fase de grupos",
+                {
+                    "invalid_fields": [
+                        {
+                            "field": "grupo",
+                            "reason": "Equipos en distintos grupos",
+                            "details": {
+                                "grupo_local": local[1],
+                                "grupo_visitante": visitante[1]
+                            }
+                        }
+                    ]
+                }
+            )
+        
+        # Validar que el equipo no juegue más de un partido en la fase (excepto grupos)
+        if not es_grupos:
+
+            cursor.execute('''
+                SELECT equipo_loc, equipo_vis
+                FROM partidos
+                WHERE id_fase = %s
+                AND (
+                    LOWER(equipo_loc) = LOWER(%s)
+                    OR LOWER(equipo_vis) = LOWER(%s)
+                )
+            ''', (id_fase, equipo_local, equipo_local))
+
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return error_response(
+                    409,
+                    "CONFLICT",
+                    "Conflicto de datos",
+                    "El equipo local ya tiene un partido en esta fase",
+                    {
+                        "invalid_fields": [
+                            {
+                                "field": "equipo_local",
+                                "value": equipo_local,
+                                "reason": "Ya tiene un partido en esta fase",
+                                "details": {
+                                    "fase": nombre_fase
+                                }
+                            }
+                        ]
+                    }
+                )
+
+            cursor.execute('''
+                SELECT equipo_loc, equipo_vis
+                FROM partidos
+                WHERE id_fase = %s
+                AND (
+                    LOWER(equipo_loc) = LOWER(%s)
+                    OR LOWER(equipo_vis) = LOWER(%s)
+                )
+            ''', (id_fase, equipo_visitante, equipo_visitante))
+
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return error_response(
+                    409,
+                    "CONFLICT",
+                    "Conflicto de datos",
+                    "El equipo visitante ya tiene un partido en esta fase",
+                    {
+                        "invalid_fields": [
+                            {
+                                "field": "equipo_visitante",
+                                "value": equipo_visitante,
+                                "reason": "Ya tiene un partido en esta fase",
+                                "details": {
+                                    "fase": nombre_fase
+                                }
+                            }
+                        ]
+                    }
+                )
+
+
+        # Evitar duplicado en misma fase
+        cursor.execute('''
+            SELECT 1
+            FROM partidos
+            WHERE id_fase = %s
+            AND (
+                (LOWER(equipo_loc) = LOWER(%s) AND LOWER(equipo_vis) = LOWER(%s))
+                OR
+                (LOWER(equipo_loc) = LOWER(%s) AND LOWER(equipo_vis) = LOWER(%s))
+            )
+        ''', (
+            id_fase,
+            equipo_local, equipo_visitante,
+            equipo_visitante, equipo_local
+        ))
+
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return error_response(
+                409,
+                "CONFLICT",
+                "Conflicto de datos",
+                "El partido ya existe en esta fase",
+                {
+                    "conflict": {
+                        "fase": nombre_fase,
+                        "equipo_local": equipo_local,
+                        "equipo_visitante": equipo_visitante
+                    }
+                }
+            )
+
+        # Validar duplicados en otras fases
+        cursor.execute('''
+            SELECT f.nombre
+            FROM partidos p
+            JOIN fases f ON p.id_fase = f.id_fase
+            WHERE (
+                (LOWER(p.equipo_loc) = LOWER(%s) AND LOWER(p.equipo_vis) = LOWER(%s))
+                OR
+                (LOWER(p.equipo_loc) = LOWER(%s) AND LOWER(p.equipo_vis) = LOWER(%s))
+            )
+        ''', (
+            equipo_local, equipo_visitante,
+            equipo_visitante, equipo_local
+        ))
+
+        partidos_existentes = cursor.fetchall()
+
+        fases_permitidas_repetir = ["Cuartos", "Semifinal", "Tercer Puesto", "Final"]
+
+        for (fase_existente,) in partidos_existentes:
+
+            if fase_existente.lower() != "grupos":
+                cursor.close()
+                conn.close()
+                return error_response(
+                    409,
+                    "CONFLICT",
+                    "Conflicto de datos",
+                    "El partido ya fue jugado en otra fase",
+                    {
+                        "conflict": {
+                            "fase_existente": fase_existente
+                        }
+                    }
+                )
+
+            if nombre_fase not in fases_permitidas_repetir:
+                cursor.close()
+                conn.close()
+                return error_response(
+                    409,
+                    "CONFLICT",
+                    "Repetición no permitida",
+                    "Un partido de grupos solo puede repetirse en fases finales",
+                    {
+                        "invalid_transition": {
+                            "fase_origen": "Grupos",
+                            "fase_destino": nombre_fase
+                        }
+                    }
+                )
+
+        # Insertar partido
+        cursor.execute('''
+            INSERT INTO partidos 
+            (equipo_loc, equipo_vis, estadio, ciudad, fecha, id_fase)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (
+            equipo_local,
+            equipo_visitante,
+            data.get('estadio', 'A confirmar'),
+            data.get('ciudad', 'A confirmar'),
+            data['fecha'],
+            id_fase
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "message": "Partido creado exitosamente"
+        }), 201
+
+    except Exception as e:
+        return error_response(
+            500,
+            "INTERNAL_SERVER_ERROR",
+            "Error interno del servidor",
+            "Ocurrió un error inesperado",
+            {"detail": str(e)}
+        )
