@@ -4,6 +4,47 @@ from db import get_db_connection
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
+@usuarios_bp.route('/<int:id>', methods=['GET']
+def listar_usuarios():
+    limit = request.args.get('limit', 10, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    if limit <= 0 or offset < 0:
+        return jsonify({'error': 'limit debe ser > 0 y offset >= 0'}), 400
+
+    resultado = UsuarioService.listar_paginado(limit, offset)
+    return jsonify(resultado), 200
+
+ def listar_paginado(limit, offset):
+        usuarios = UsuarioRepository.obtener_paginado(limit, offset)
+        total = UsuarioRepository.contar()
+        
+        data = [{
+            'id': u.id,
+            'nombre': u.nombre,
+            'email': u.email
+        } for u in usuarios]
+        
+        base_url = '/usuarios'
+        return {
+            'data': data,
+            'pagination': {
+                'limit': limit,
+                'offset': offset,
+                'total': total,
+                'first': f'{base_url}?limit={limit}&offset=0',
+                'prev': f'{base_url}?limit={limit}&offset={max(0, offset - limit)}' if offset > 0 else None,
+                'next': f'{base_url}?limit={limit}&offset={offset + limit}' if offset + limit < total else None,
+                'last': f'{base_url}?limit={limit}&offset={(total // limit) * limit}'
+            }
+        }
+
+def obtener_paginado(limit, offset):
+        return Usuario.query.offset(offset).limit(limit).all()
+
+ def contar():
+        return Usuario.query.count()
+
 @usuarios_bp.route('/<int:id>', methods=['GET'])
 def get_usuario(id):
     conn = get_db_connection()
