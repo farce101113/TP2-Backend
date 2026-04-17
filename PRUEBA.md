@@ -42,23 +42,27 @@ python app.py
 
 PARTIDOS
 
-- GET /partidos
+GET /partidos
+
 - Método: GET
 - Url: http://127.0.0.1:5000/partidos
 - Body: Sin body (query params opcionales: equipo, fecha, fase, _limit, _offset)
+
 
 POST /partidos
 
 - Método: POST
 - Url: /partidos
 - Body:
-```JSON{
+```JSON
+{
   "equipo_local": "Argentina",
   "equipo_visitante": "Brasil",
   "fecha": "2026-06-15",
   "fase": "grupos"
 }
 ```
+
 
 GET /partidos/{id}
 
@@ -66,12 +70,14 @@ GET /partidos/{id}
 - Url: /partidos/1
 - Body: Sin body
 
+
 PUT /partidos/{id}
 
 - Método: PUT
 - Url: /partidos/1
 - Body:
-```JSON{
+```JSON
+{
   "equipo_local": "Argentina",
   "equipo_visitante": "Brasil",
   "fecha": "2026-06-15",
@@ -79,15 +85,18 @@ PUT /partidos/{id}
 }
 ```
 
+
 PATCH /partidos/{id}
 
 - Método: PATCH
 - Url: /partidos/1
 - Body: (al menos un campo)
-```JSON{
+```JSON
+{
   "fecha": "2026-06-20"
 }
 ```
+
 
 DELETE /partidos/{id}
 
@@ -95,23 +104,27 @@ DELETE /partidos/{id}
 - Url: /partidos/1
 - Body: Sin body
 
+
 PUT /partidos/{id}/resultado
 
 - Método: PUT
 - Url: /partidos/1/resultado
 - Body:
-```JSON{
+```JSON
+{
   "local": 2,
   "visitante": 1
 }
 ```
+
 
 POST /partidos/{id}/prediccion
 
 - Método: POST
 - Url: /partidos/1/prediccion
 - Body:
-```JSON{
+```JSON
+{
   "id_usuario": 1,
   "local": 2,
   "visitante": 1
@@ -125,11 +138,13 @@ POST /usuarios
 - Método: POST
 - Url: /usuarios
 - Body:
-```JSON{
+```JSON
+{
   "nombre": "Juan Pérez",
   "email": "juan@test.com"
 }
 ```
+
 
 GET /usuarios
 
@@ -137,22 +152,26 @@ GET /usuarios
 - Url: /usuarios
 - Body: Sin body (query params: _limit, _offset)
 
+
 GET /usuarios/{id}
 
 - Método: GET
 - Url: /usuarios/1
 - Body: Sin body
 
+
 PUT /usuarios/{id}
 
 - Método: PUT
 - Url: /usuarios/1
 - Body:
-```JSON{
+```JSON
+{
   "nombre": "Juan Pérez",
   "email": "juan@test.com"
 }
 ```
+
 
 DELETE /usuarios/{id}
 
@@ -170,9 +189,9 @@ GET /ranking
 
 ## 🗄️ Base de datos
 
-Nombre: prode
-Usuario: root
-Contraseña: 2026
+- Nombre: prode
+- Usuario: root
+- Contraseña: 2026
 
 ## 📋 Supuestos / Hipótesis
 
