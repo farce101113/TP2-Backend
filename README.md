@@ -52,7 +52,7 @@ GET /partidos
 POST /partidos
 
 - Método: POST
-- Url: /partidos
+- Url: http://127.0.0.1:5000/partidos
 - Body:
 ```JSON
 {
@@ -67,14 +67,14 @@ POST /partidos
 GET /partidos/{id}
 
 - Método: GET
-- Url: /partidos/1
+- Url: http://127.0.0.1:5000/partidos/1
 - Body: Sin body
 
 
 PUT /partidos/{id}
 
 - Método: PUT
-- Url: /partidos/1
+- Url: http://127.0.0.1:5000/partidos/1
 - Body:
 ```JSON
 {
@@ -89,7 +89,7 @@ PUT /partidos/{id}
 PATCH /partidos/{id}
 
 - Método: PATCH
-- Url: /partidos/1
+- Url: http://127.0.0.1:5000/partidos/1
 - Body: (al menos un campo)
 ```JSON
 {
@@ -101,14 +101,14 @@ PATCH /partidos/{id}
 DELETE /partidos/{id}
 
 - Método: DELETE
-- Url: /partidos/1
+- Url: http://127.0.0.1:5000/partidos/1
 - Body: Sin body
 
 
 PUT /partidos/{id}/resultado
 
 - Método: PUT
-- Url: /partidos/1/resultado
+- Url: http://127.0.0.1:5000/partidos/1/resultado
 - Body:
 ```JSON
 {
@@ -121,7 +121,7 @@ PUT /partidos/{id}/resultado
 POST /partidos/{id}/prediccion
 
 - Método: POST
-- Url: /partidos/1/prediccion
+- Url: http://127.0.0.1:5000/partidos/1/prediccion
 - Body:
 ```JSON
 {
@@ -136,7 +136,7 @@ USUARIOS
 POST /usuarios
 
 - Método: POST
-- Url: /usuarios
+- Url: http://127.0.0.1:5000/usuarios
 - Body:
 ```JSON
 {
@@ -149,21 +149,21 @@ POST /usuarios
 GET /usuarios
 
 - Método: GET
-- Url: /usuarios
+- Url: http://127.0.0.1:5000/usuarios
 - Body: Sin body (query params: _limit, _offset)
 
 
 GET /usuarios/{id}
 
 - Método: GET
-- Url: /usuarios/1
+- Url: http://127.0.0.1:5000/usuarios/1
 - Body: Sin body
 
 
 PUT /usuarios/{id}
 
 - Método: PUT
-- Url: /usuarios/1
+- Url: http://127.0.0.1:5000/usuarios/1
 - Body:
 ```JSON
 {
@@ -176,7 +176,7 @@ PUT /usuarios/{id}
 DELETE /usuarios/{id}
 
 - Método: DELETE
-- Url: /usuarios/1
+- Url: http://127.0.0.1:5000/usuarios/1
 - Body: Sin body
 
 RANKING
@@ -184,7 +184,7 @@ RANKING
 GET /ranking
 
 - Método: GET
-- Url: /ranking
+- Url: http://127.0.0.1:5000/ranking
 - Body: Sin body (query params: _limit, _offset)
 
 ## 🗄️ Base de datos
