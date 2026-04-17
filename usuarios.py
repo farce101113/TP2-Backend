@@ -81,19 +81,34 @@ def get_usuarios():
 
 @usuarios_bp.route('/<int:id>', methods=['GET'])
 def get_usuario(id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT id_usuario, nombre, email FROM usuarios WHERE id_usuario = %s', (id,))
+        usuario = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if usuario:
+            return jsonify(usuario), 200
+        else:
+            return jsonify({
+                    'code': 'NOT_FOUND',
+                    'message': 'Usuario no encontrado',
+                    'level': 'error',
+                    'description': f'No existe un usuario con id {id}'
+                }), 404
     
-    cursor.execute('SELECT id, nombre, email FROM usuarios WHERE id = %s', (id,))
-    usuario = cursor.fetchone()
+    except Exception as e:
+        return jsonify({
+            'code' : 'INTERNAL SERVER_ERROR',
+            'message' : 'Ocurrio un error al procesar la solicitud de partidosl',
+            'level' : 'error',
+            'description' : str(e)
+        }), 500
     
-    cursor.close()
-    conn.close()
-    
-    if usuario:
-        return jsonify(usuario), 200
-    else:
-        return jsonify({"error": "Usuario no encontrado"}), 404
         
 @usuarios_bp.route('/', methods=['POST'])
 def crear_usuario():
@@ -101,7 +116,10 @@ def crear_usuario():
 
     if not data:
         return jsonify({
-            "errors": [{"message": "Body requerido"}]
+            'code': 'BAD_REQUEST',
+            'message': 'Body requerido',
+            'level': 'error',
+            'description': 'El cuerpo de la solicitud debe contener un JSON con nombre y email'
         }), 400
 
     nombre = data.get("nombre")
@@ -109,7 +127,10 @@ def crear_usuario():
 
     if not nombre or not email:
         return jsonify({
-            "errors": [{"message": "nombre y email son obligatorios"}]
+            'code': 'BAD_REQUEST',
+            'message': 'nombre y email son obligatorios',
+            'level': 'error',
+            'description': 'Faltan campos requeridos: nombre y email'
         }), 400
 
     conn = get_db_connection()
@@ -126,72 +147,130 @@ def crear_usuario():
 
     except mysql.connector.IntegrityError:
         return jsonify({
-            "errors": [{"message": "email ya existe"}
-            ]
+            'code': 'CONFLICT',
+            'message': 'email ya está en uso por otro usuario',
+            'level': 'error',
+            'description': f'El email {email} ya está registrado para otro usuario'
+            
         }), 409
 
     except Exception:
         return jsonify({
-            "errors": [{"message": "error interno"}]
+            'code': 'INTERNAL_SERVER_ERROR',
+            'message': 'error interno',
+            'level': 'error',
+            'description': 'Ocurrió un error interno en el servidor'
         }), 500
 
     finally:
         cursor.close()
         conn.close()
+
+        
 @usuarios_bp.route('/<int:id>', methods=['DELETE'])
 def delete_usuario(id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor.execute('SELECT id FROM usuarios WHERE id = %s', (id,))
-    usuario = cursor.fetchone()
+        cursor.execute('SELECT id_usuario FROM usuarios WHERE id_usuario = %s', (id,))
+        usuario = cursor.fetchone()
 
-    if usuario:
-        cursor.execute('DELETE FROM usuarios WHERE id = %s', (id,))
-        conn.commit()
+        if usuario:
+            cursor.execute('DELETE FROM usuarios WHERE id_usuario = %s', (id,))
+            conn.commit()
 
-        cursor.close()
-        conn.close()
+            cursor.close()
+            conn.close()
 
-        return jsonify({"mensaje": "Usuario eliminado"}), 200
-    else:
-        cursor.close()
-        conn.close()
+            return jsonify({
+                'code': 'SUCCESS',
+                'message': 'Usuario eliminado exitosamente',
+                'level': 'success',
+                'description': f'El usuario con id {id} ha sido eliminado'
+            }), 200
+        else:
+            cursor.close()
+            conn.close()
 
-        return jsonify({"error": "Usuario no encontrado"}), 404
-
+            return jsonify({
+                'code': 'NOT_FOUND',
+                'message': 'Usuario no encontrado',
+                'level': 'error',
+                'description': f'No existe un usuario con id {id}'
+            }), 404
+        
+    except Exception as e:
+        return jsonify({
+            'code' : 'INTERNAL SERVER_ERROR',
+            'message' : 'Ocurrio un error al procesar la solicitud de partidosl',
+            'level' : 'error',
+            'description' : str(e)
+        }), 500
+    
+    
 @usuarios_bp.route('/<int:id>', methods=['PUT'])
 def modificar_usuario(id):
     data = request.get_json()
 
     if not data:
-        return jsonify({"errors": [{"message": "Body requerido"}]}), 400
+        return jsonify({
+            'code': 'BAD_REQUEST',
+            'message': 'Body requerido',
+            'level': 'error',
+            'description': 'El cuerpo de la solicitud debe contener un JSON con nombre y email'
+        }), 400
 
     nombre = data.get("nombre")
     email = data.get("email")
 
     if not nombre or not email:
-        return jsonify({"errors": [{"message": "nombre y email son obligatorios"}]}), 400
+        return jsonify({
+            'code': 'BAD_REQUEST',
+            'message': 'nombre y email son obligatorios',
+            'level': 'error',
+            'description': 'Faltan campos requeridos: nombre y email'
+        }), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
         cursor.execute(
-            "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
+            "UPDATE usuarios SET nombre = %s, email = %s WHERE id_usuario = %s",
             (nombre, email, id)
         )
         conn.commit()
 
         if cursor.rowcount == 0:
-            return jsonify({"errors": [{"message": "Usuario no encontrado"}]}), 404
+            return jsonify({
+                'code': 'NOT_FOUND',
+                'message': 'Usuario no encontrado',
+                'level': 'error',
+                'description': f'No existe un usuario con id {id}'
+            }), 404
 
-        return jsonify({"id": id, "nombre": nombre, "email": email}), 200
+        return jsonify({
+            'code': 'SUCCESS',
+            'message': 'Usuario modificado exitosamente',
+            'level': 'success',
+            'description': f'El usuario con id {id} ha sido modificado'
+        }), 200
 
     except mysql.connector.IntegrityError:
-        return jsonify({"errors": [{"message": "email ya está en uso por otro usuario"}]}), 409
+        return jsonify({
+            'code': 'CONFLICT',
+            'message': 'email ya está en uso por otro usuario',
+            'level': 'error',
+            'description': f'El email {email} ya está registrado para otro usuario'
+        }), 409
     except Exception:
-        return jsonify({"errors": [{"message": "error interno"}]}), 500
+        return jsonify({
+            'code': 'INTERNAL_SERVER_ERROR',
+            'message': 'error interno',
+            'level': 'error',
+            'description': 'Ocurrió un error interno en el servidor'
+        }), 500
     finally:
         cursor.close()
         conn.close()

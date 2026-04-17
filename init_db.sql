@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS partidos (
 CREATE TABLE IF NOT EXISTS usuarios (
     id_usuario INT NOT NULL AUTO_INCREMENT,
     nombre VARCHAR(50) NOT NULL,
-    mail VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(50) NOT NULL UNIQUE,
     PRIMARY KEY (id_usuario)
 );
 

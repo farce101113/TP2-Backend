@@ -11,7 +11,7 @@ INSERT INTO fases (nombre) VALUES
 ('Final');
 
 -- USUARIOS
-INSERT INTO usuarios (nombre, mail) VALUES
+INSERT INTO usuarios (nombre, email) VALUES
 ('Facundo', 'facu@gmail.com'),
 ('Juan', 'juan@gmail.com'),
 ('Maria', 'maria@gmail.com');
