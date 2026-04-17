@@ -18,29 +18,34 @@ El proyecto cumple **exactamente** con el contrato definido en `swagger.yaml`.
 
 ```bash
 ./setup.sh
+```
+
 Este script:
 
-Crea/actualiza el entorno virtual .venv
-Instala todas las dependencias
-Reinicia y carga la base de datos
-Levanta el servidor en http://localhost:5000
+- Crea/actualiza el entorno virtual .venv
+- Instala todas las dependencias
+- Reinicia y carga la base de datos
+- Levanta el servidor en http://localhost:5000
 
+## ⚙️ Instalación manual
 
-⚙️ Instalación manual
-Bashpython3 -m venv .venv
+```Bash
+python3 -m venv .venv
 source .venv/bin/activate
 pip install flask flask-cors mysql-connector-python
 python init_db.py
 mysql -u root -p prode < seed.sql
 python app.py
+```
 
-📡 Ejemplos de uso (Postman)
+## 📡 Ejemplos de uso
+
 PARTIDOS
-GET /partidos
 
-Método: GET
-Url: /partidos
-Body: Sin body (query params opcionales: equipo, fecha, fase, _limit, _offset)
+- GET /partidos
+- Método: GET
+- Url: http://127.0.0.1:5000/partidos
+- Body: Sin body (query params opcionales: equipo, fecha, fase, _limit, _offset)
 
 POST /partidos
 
