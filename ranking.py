@@ -7,8 +7,16 @@ ranking_bp = Blueprint('ranking', __name__)
 @ranking_bp.route('/', methods=['GET'])
 def ranking():
     try:
-        limit = request.args.get('limit', default=10, type=int)
-        offset = request.args.get('offset', default=0, type=int)
+        limit = request.args.get('_limit', default=10, type=int)
+        offset = request.args.get('_offset', default=0, type=int)
+
+        if limit < 0 or offset < 0:
+            return jsonify({
+                'code': 'BAD REQUEST',
+                'message': 'Los parametros limit y offset no son validos',
+                'level': 'error',
+                'description': 'El valor de limit y offset deben ser un numero entero mayor o igual a 0'
+            }), 400
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -52,24 +60,39 @@ def ranking():
         resultados = cursor.fetchall()
 
         ranking = []
-        for i, fila in enumerate(resultados):
-            posicion = offset + i + 1
-
+        for fila in resultados:
             ranking.append({
-                "posicion": posicion,
                 "id_usuario": fila["id_usuario"],
                 "nombre": fila["nombre"],
                 "puntos": fila["puntos"]
             })
+
+        base_url = request.base_url
+        def build_url(new_offset):
+            return f'{base_url}?_limit={limit}&_offset={new_offset}'
+
+        first = build_url(0)
+
+        prev = build_url(offset - limit) if offset > 0 else None
+
+        next = build_url(offset + limit) if offset + limit < total else None
+
+        last_offset = max(total - limit, 0)
+        last = build_url(last_offset)
+
+        links = {
+            '_first': {'href': first},
+            'prev': {'href': prev} if prev else None,
+            'next': {'href': next} if next else None,
+            'last': {'href': last}
+        }
 
         cursor.close()
         conn.close()
 
         return jsonify({
             "data": ranking,
-            "total": total,
-            "limit": limit,
-            "offset": offset
+            "links": links
         }), 200
     
     except Exception as e:
