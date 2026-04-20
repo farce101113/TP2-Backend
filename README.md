@@ -222,6 +222,9 @@ GET /ranking
     - Semifinal
     - Tercer puesto
     - Final
+  - No pueden existir partidos duplicados en fases eliminatorias.
+  - Un mismo equipo no puede jugar más de un partido por fase eliminatoria.
+    - Ejemplo: un equipo puede jugar múltiples partidos en fase de grupos, pero en instancias eliminatorias solo puede tener un partido por fase (por ejemplo, un único partido en octavos, uno en cuartos, etc.).
 - Estas validaciones aplican tanto para:
   - POST /partidos
   - PUT /partidos/{id}
