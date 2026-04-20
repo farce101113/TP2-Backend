@@ -198,8 +198,34 @@ GET /ranking
 - No se implementó autenticación (según enunciado).
 - estadio y ciudad están en la BD pero no se usan en el contrato Swagger.
 - Solo se permite una predicción por usuario por partido.
-- Los puntos del ranking se calculan automáticamente (3/1/0).
+  - Las predicciones están asociadas a:
+    - un usuario (id_usuario)
+    - un partido (id_partido)
+- Los puntos del ranking se calculan en la ejecucion del endpoint ranking
 - Paginación HATEOAS implementada en todos los listados.
+- La base de datos está compuesta por las siguientes tablas:
+  - Fases: contiene las fases del torneo (grupos, dieciseisavos, octavos, etc.). Se carga automáticamente al inicializar la base y se utiliza para validar que los partidos pertenezcan a una fase válida.
+  - Partidos: almacena los encuentros del fixture.
+  - Usuarios: almacena los usuarios del sistema.
+  - Predicciones: registra las predicciones realizadas por los usuarios, vinculadas a un partido y un usuario.
+  - Clasificados: contiene los equipos clasificados al Mundial 2026 junto con su grupo. Se utiliza para validar la creación de partidos.
+ - La base de datos se inicializa vacía, excepto por las tablas Fases y Clasificados, que se precargan automáticamente.
+
+## 🏆 Reglas de negocio para PARTIDOS
+- Solo se pueden crear partidos cuyos equipos estén presentes en la tabla Clasificados.
+- En fase de grupos:
+  - Ambos equipos deben pertenecer al mismo grupo.
+- En fases eliminatorias:
+  - Equipos que compartieron grupo no pueden enfrentarse en dieciseisavos ni octavos de final.
+  - Sí pueden enfrentarse en:
+    - Cuartos de final
+    - Semifinal
+    - Tercer puesto
+    - Final
+- Estas validaciones aplican tanto para:
+  - POST /partidos
+  - PUT /partidos/{id}
+  - PATCH /partidos/{id}
 
 ## 🛠️ Tecnologías
 

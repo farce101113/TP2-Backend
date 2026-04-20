@@ -86,10 +86,12 @@ def validar_logica_partido(cursor, data, partido_id=None):
         )
 
     id_fase = fase["id_fase"]
-    nombre_fase = fase["nombre"]
-    es_grupos = nombre_fase.lower() == "grupos"
-    fase_actual_nombre = None
+    nombre_fase = fase["nombre"].strip()
+    fase_nueva = nombre_fase.lower()
+    es_grupos = fase_nueva == "grupos"
 
+    # Obtener fase actual si es update
+    fase_actual_nombre = None
     if partido_id:
         cursor.execute('''
             SELECT f.nombre
@@ -100,16 +102,13 @@ def validar_logica_partido(cursor, data, partido_id=None):
         
         fila = cursor.fetchone()
         if fila:
-            fase_actual_nombre = fila["nombre"]
+            fase_actual_nombre = fila["nombre"].strip().lower()
 
-    # Valida transición de fases (si viene fase actual)
+    # Validar transición de fase (solo updates)
     if fase_actual_nombre:
-        fase_actual = fase_actual_nombre.lower()
-        fase_nueva = nombre_fase.lower()
-
         fases_finales = ["cuartos", "semifinal", "tercer puesto", "final"]
 
-        if fase_actual == "grupos":
+        if fase_actual_nombre == "grupos":
             if fase_nueva not in ["grupos"] + fases_finales:
                 return error_response(
                     409,
@@ -118,7 +117,7 @@ def validar_logica_partido(cursor, data, partido_id=None):
                     "Un partido de grupos solo puede mantenerse o pasar a fases finales"
                 )
 
-    # Validar que ambos equipos sean del mismo grupo si la fase es de grupos
+    # Validar grupos
     if es_grupos and local["grupo"] != visitante["grupo"]:
         return error_response(
             400, "BAD_REQUEST",
@@ -126,7 +125,7 @@ def validar_logica_partido(cursor, data, partido_id=None):
             "Equipos en distintos grupos"
         )
 
-    # Validar que no se repitan partidos en la misma fase
+    # Preparar filtro para excluir el mismo partido en updates
     filtro_id = ""
     params_extra = ()
 
@@ -134,7 +133,7 @@ def validar_logica_partido(cursor, data, partido_id=None):
         filtro_id = "AND id_partido != %s"
         params_extra = (partido_id,)
 
-    # Validar que no exista el mismo partido en la misma fase
+    # Validar duplicado exacto en la misma fase
     cursor.execute(f'''
         SELECT 1 FROM partidos
         WHERE id_fase = %s
@@ -158,10 +157,9 @@ def validar_logica_partido(cursor, data, partido_id=None):
             "El partido ya existe en esta fase"
         )
 
-    # Validar que un mismo equipo no juegue más de una vez en fases de grupos
+    # Validar que un equipo no tenga más de un partido en fases eliminatorias
     if not es_grupos:
 
-        # equipo local
         cursor.execute(f'''
             SELECT 1 FROM partidos
             WHERE id_fase = %s
@@ -179,7 +177,6 @@ def validar_logica_partido(cursor, data, partido_id=None):
                 "El equipo local ya tiene un partido en esta fase"
             )
 
-        # equipo visitante
         cursor.execute(f'''
             SELECT 1 FROM partidos
             WHERE id_fase = %s
@@ -197,8 +194,7 @@ def validar_logica_partido(cursor, data, partido_id=None):
                 "El equipo visitante ya tiene un partido en esta fase"
             )
 
-    # Validar que no se repita el mismo enfrentamiento en fases distintas (salvo grupos → finales)
-
+    # Validar repetición entre fases
     cursor.execute(f'''
         SELECT f.nombre
         FROM partidos p
@@ -217,26 +213,34 @@ def validar_logica_partido(cursor, data, partido_id=None):
 
     partidos_existentes = cursor.fetchall()
 
-    fases_permitidas_repetir = ["Cuartos", "Semifinal", "Tercer Puesto", "Final"]
+    fases_permitidas_repetir = ["cuartos", "semifinal", "tercer puesto", "final"]
 
-    for (fase_existente,) in partidos_existentes:
+    existe_en_grupos = False
+    existe_en_eliminatoria = False
 
-        # Si ya se jugó en fase que no es grupos
-        if fase_existente.lower() != "grupos":
-            return error_response(
-                409,
-                "CONFLICT",
-                "Conflicto de datos",
-                "El partido ya fue jugado en otra fase"
-            )
+    for row in partidos_existentes:
+        fase_existente_lower = row["nombre"].strip().lower()
 
-        # Si viene de grupos → solo fases finales
-        if nombre_fase not in fases_permitidas_repetir:
+        if fase_existente_lower == "grupos":
+            existe_en_grupos = True
+        else:
+            existe_en_eliminatoria = True
+
+    if existe_en_eliminatoria:
+        return error_response(
+            409,
+            "CONFLICT",
+            "Conflicto de datos",
+            "El partido ya fue jugado en una fase eliminatoria"
+        )
+
+    if existe_en_grupos:
+        if fase_nueva not in fases_permitidas_repetir:
             return error_response(
                 409,
                 "CONFLICT",
                 "Repetición no permitida",
-                "Un partido de grupos solo puede repetirse en fases finales"
+                "Un partido de grupos solo puede repetirse desde cuartos en adelante"
             )
 
     return {
@@ -245,7 +249,6 @@ def validar_logica_partido(cursor, data, partido_id=None):
         "nombre_fase": nombre_fase,
         "es_grupos": es_grupos
     }
-
 
 @partidos_bp.route('/', methods=['GET'])
 def get_partidos():
@@ -680,7 +683,7 @@ def create_partido():
             return error
 
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
 
         resultado = validar_logica_partido(cursor, data)
         if "ok" not in resultado:
