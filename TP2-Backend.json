@@ -1,0 +1,525 @@
+{
+  "info": {
+    "name": "TP2-Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Partidos",
+      "item": [
+        {
+          "name": "DELETE Partidos",
+          "event": [],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/24",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "24"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET Partidos By ID",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/19",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "19"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET Partidos",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/?fecha=2026-06-1",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "?fecha=2026-06-1"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-06-1"
+                },
+                {
+                  "key": "equipo",
+                  "value": "Argenti"
+                }
+              ],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH Partido",
+          "event": [],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/1",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "1"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fase\": \"Octavos\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST Partidos",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                ""
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipo_local\": \"Austria\",\n  \"equipo_visitante\": \"Argentina\",\n  \"fecha\": \"2026-06-18 13:00:00\",\n  \"fase\": \"Octavos\",\n  \"estadio\": \"Mercedes-Benz Stadium\",\n  \"ciudad\": \"Atlanta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST Prediccion",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/7/prediccion",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "7",
+                "prediccion"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_usuario\": 3,\n  \"goles_loc\": 3,\n  \"goles_vis\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT Partido",
+          "event": [],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/26",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "26"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipo_local\": \"Argentina\",\n  \"equipo_visitante\": \"Austria\",\n  \"fecha\": \"2026-06-18 13:00:00\",\n  \"fase\": \"Semifinal\",\n  \"estadio\": \"Mercedes-Benz Stadium\",\n  \"ciudad\": \"Atlanta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT Resultado",
+          "event": [],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/partidos/7/resultado",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "partidos",
+                "7",
+                "resultado"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"local\": 3,\n  \"visitante\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ranking",
+      "item": [
+        {
+          "name": "GET Ranking",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/ranking",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "ranking"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "DELETE Usuarios",
+          "event": [],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/usuarios/5",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "usuarios",
+                "5"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET Usuarios By ID",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/usuarios/2",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "usuarios",
+                "2"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET Usuarios",
+          "event": [],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/usuarios/?limit=10&offset=1",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "usuarios",
+                "?limit=10&offset=1"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "1"
+                }
+              ],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST Usuarios",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/usuarios/",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "usuarios",
+                ""
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan\",\n  \"mail\": \"Juan2@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT Usuarios",
+          "event": [],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "url": {
+              "raw": "{{localhost}}/usuarios/1",
+              "protocol": "",
+              "host": [
+                "{{localhost}}"
+              ],
+              "path": [
+                "usuarios",
+                "1"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Facu\",\n  \"email\": \"facu2@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "localhost",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}
